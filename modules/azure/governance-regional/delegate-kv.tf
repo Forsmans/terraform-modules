@@ -30,6 +30,20 @@ resource "azurerm_key_vault" "delegate_kv" {
   enabled_for_disk_encryption = true
 }
 
+resource "azurerm_key_vault_access_policy" "current_user" {
+  for_each = {
+    for rg in var.resource_group_configs :
+    rg.common_name => rg
+    if rg.delegate_key_vault == true
+  }
+
+  key_vault_id       = azurerm_key_vault.delegate_kv[each.key].id
+  tenant_id          = data.azurerm_client_config.current.tenant_id
+  object_id          = data.azurerm_client_config.current.object_id
+  key_permissions    = local.key_vault_default_permissions.key_permissions
+  secret_permissions = local.key_vault_default_permissions.secret_permissions
+}
+
 resource "azurerm_key_vault_access_policy" "ap_owner_spn" {
   for_each = {
     for rg in var.resource_group_configs :
